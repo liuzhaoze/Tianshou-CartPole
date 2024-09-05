@@ -41,6 +41,12 @@ pip install tensorboard
 pip install wandb
 ```
 
+## Usage
+
+```bash
+python tianshou-cartpole.py --watch --watch-episode-num 3
+```
+
 ## TODO
 
 - `tianshou-cartpole.py`:

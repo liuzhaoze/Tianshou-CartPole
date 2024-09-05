@@ -1,5 +1,4 @@
 import argparse
-import logging
 import os
 from datetime import datetime
 from functools import partial
@@ -68,7 +67,7 @@ def get_args() -> argparse.Namespace:
     parser.add_argument(
         "--num-epochs",
         type=int,
-        default=100,
+        default=50,
         help="Number of total epochs in training process.",
     )
     parser.add_argument("--step-per-epoch", type=int, default=1000)
@@ -106,9 +105,9 @@ def get_env(args: argparse.Namespace, render_mode: str | None = None):
 def add_env_info(args: argparse.Namespace) -> argparse.Namespace:
     env = get_env(args)
     args.state_space = env.observation_space
-    args.state_shape = env.observation_space.shape or int(env.observation_space.n)
+    args.state_shape = args.state_space.shape or int(args.state_space.n)
     args.action_space = env.action_space
-    args.action_shape = env.action_space.shape or int(env.action_space.n)
+    args.action_shape = args.action_space.shape or int(args.action_space.n)
     if env.spec.reward_threshold:
         args.reward_threshold = env.spec.reward_threshold
     return args
@@ -143,7 +142,7 @@ def get_policy(
     if use_best:
         path = os.path.join(args.log_path, "best.pth")
         policy.load_state_dict(torch.load(path, map_location=args.device))
-        logging.info(f"Load best policy from {path}")
+        print(f"Load best policy from {path}")
 
     return policy, optimizer
 
@@ -213,7 +212,7 @@ def train(
     def save_best_fn(policy: BasePolicy) -> None:
         path = os.path.join(args.log_path, "best.pth")
         torch.save(policy.state_dict(), path)
-        logging.info(f"Save best policy to {path}")
+        print(f"Save best policy to {path}")
 
     result = OffpolicyTrainer(
         policy=policy,
@@ -236,9 +235,11 @@ def train(
     return result, policy
 
 
-def watch(args: argparse.Namespace, policy: BasePolicy | None = None):
+def watch(
+    args: argparse.Namespace, policy: BasePolicy | None = None, use_best: bool = False
+):
     env = DummyVectorEnv([partial(get_env, args, render_mode="human")])
-    policy, optimizer = get_policy(args, policy, use_best=True)
+    policy, optimizer = get_policy(args, policy, use_best=use_best)
     policy.eval()
     policy.set_eps(args.epsilon_test)
     collector = Collector(policy, env, exploration_noise=True)
@@ -252,8 +253,6 @@ def watch(args: argparse.Namespace, policy: BasePolicy | None = None):
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
-
     args = get_args()
     args = configure_log_path(args)
     args = add_env_info(args)
@@ -261,4 +260,4 @@ if __name__ == "__main__":
     result, policy = train(args)
 
     if args.watch:
-        result = watch(args, policy)
+        result = watch(args, policy, use_best=True)

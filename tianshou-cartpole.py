@@ -29,22 +29,16 @@ def get_args() -> argparse.Namespace:
     parser.add_argument("--batch-size", type=int, default=64)
     parser.add_argument("--learning-rate", type=float, default=1e-4)
     parser.add_argument("--gamma", type=float, default=0.99, help="Discount factor.")
-    parser.add_argument(
-        "--td-step", type=int, default=3, help="N-step in multi-step TD target."
-    )
+    parser.add_argument("--td-step", type=int, default=3, help="N-step in multi-step TD target.")
     parser.add_argument("--target-update-freq", type=int, default=100)
-    parser.add_argument(
-        "--buffer-size", type=int, default=1e5, help="Size of replay buffer."
-    )
+    parser.add_argument("--buffer-size", type=int, default=1e5, help="Size of replay buffer.")
     parser.add_argument(
         "--epsilon-start",
         type=float,
         default=1.0,
         help="Start value of epsilon-greedy.",
     )
-    parser.add_argument(
-        "--epsilon-end", type=float, default=0.05, help="End value of epsilon-greedy."
-    )
+    parser.add_argument("--epsilon-end", type=float, default=0.05, help="End value of epsilon-greedy.")
     parser.add_argument("--epsilon-test", type=float, default=0.005)
     parser.add_argument(
         "--reward-threshold",
@@ -74,12 +68,8 @@ def get_args() -> argparse.Namespace:
     parser.add_argument("--step-per-collect", type=int, default=10)
     parser.add_argument("--episode-per-test", type=int, default=100)
     parser.add_argument("--update-per-step", type=float, default=0.1)
-    parser.add_argument(
-        "--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu"
-    )
-    parser.add_argument(
-        "--logger", type=str, default="tensorboard", choices=["tensorboard", "wandb"]
-    )
+    parser.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu")
+    parser.add_argument("--logger", type=str, default="tensorboard", choices=["tensorboard", "wandb"])
     parser.add_argument("--logdir", type=str, default="log")
     parser.add_argument("--wandb-project", type=str, default="tianshou-cartpole")
     parser.add_argument("--resume-id", type=str, default=None)
@@ -152,12 +142,8 @@ def train(
     policy: BasePolicy | None = None,
     optimizer: torch.optim.Optimizer | None = None,
 ):
-    train_envs = DummyVectorEnv(
-        [partial(get_env, args) for _ in range(args.train_env_num)]
-    )
-    test_envs = DummyVectorEnv(
-        [partial(get_env, args) for _ in range(args.test_env_num)]
-    )
+    train_envs = DummyVectorEnv([partial(get_env, args) for _ in range(args.train_env_num)])
+    test_envs = DummyVectorEnv([partial(get_env, args) for _ in range(args.test_env_num)])
 
     # seed
     np.random.seed(args.seed)
@@ -169,9 +155,7 @@ def train(
     policy, optimizer = get_policy(args, policy, optimizer)
 
     # replay buffer
-    buffer = VectorReplayBuffer(
-        total_size=args.buffer_size, buffer_num=args.train_env_num
-    )
+    buffer = VectorReplayBuffer(total_size=args.buffer_size, buffer_num=args.train_env_num)
 
     # collector
     train_collector = Collector(policy, train_envs, buffer, exploration_noise=True)
@@ -196,9 +180,7 @@ def train(
     def train_fn(num_epoch: int, step_idx: int) -> None:
         # nature DQN setting, linear decay in the first 1M steps
         if step_idx <= 1e6:
-            epsilon = args.epsilon_start - step_idx / 1e6 * (
-                args.epsilon_start - args.epsilon_end
-            )
+            epsilon = args.epsilon_start - step_idx / 1e6 * (args.epsilon_start - args.epsilon_end)
         else:
             epsilon = args.epsilon_end
         policy.set_eps(epsilon)
@@ -235,9 +217,7 @@ def train(
     return result, policy
 
 
-def watch(
-    args: argparse.Namespace, policy: BasePolicy | None = None, use_best: bool = False
-):
+def watch(args: argparse.Namespace, policy: BasePolicy | None = None, use_best: bool = False):
     env = DummyVectorEnv([partial(get_env, args, render_mode="human")])
     policy, optimizer = get_policy(args, policy, use_best=use_best)
     policy.eval()
